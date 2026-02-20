@@ -1,93 +1,238 @@
-# Outlook MCP Server
+# MCP Outlook Server
 
-A Model Context Protocol (MCP) server for Microsoft Outlook, built with Node.js.
-This server allows AI assistants (like Claude Desktop) to interact with your Outlook inbox and Calendar using the Microsoft Graph API.
+Un serveur **Model Context Protocol (MCP)** pour Microsoft Outlook, permettant à des agents IA comme **Claude Desktop** d'interagir avec ta boîte mail et ton calendrier via l'API Microsoft Graph.
 
-## Features
+---
 
-- **Device Code Authentication**: Secure login via Azure AD with persistent token caching.
-- **Mail Tools**:
-  - `list_messages`: View top 10 emails from your Inbox (Subject, Sender, Preview).
-  - `get_message`: Read the full HTML content of a specific email.
-  - `send_message`: Send new emails.
-- **Calendar Tools**:
-  - `list_events`: List events for the next 7 days.
-  - `create_event`: Create new events with attendees. **Automatically adds a Microsoft Teams meeting link**.
-- **Robustness**: Auto-refresh tokens, handles Graph API errors gracefully.
+## ✨ Fonctionnalités
 
-## Prerequisites
+- 📧 **Mail** : Lire, consulter et envoyer des emails
+- 📅 **Calendrier** : Lister et créer des événements avec lien Teams automatique
+- 🔐 **Authentification** : Azure AD Device Code Flow avec cache de token persistant
+- 🔄 **Auto-refresh** : Le token se renouvelle automatiquement
 
-- Node.js (v16+)
-- An Azure Cloud account (to create an App Registration)
+---
 
-## Setup
+## 🛠️ Outils disponibles
 
-### 1. Azure App Registration
+| Outil | Description | Paramètres |
+|-------|-------------|------------|
+| `list_messages` | Liste les 10 derniers emails de la boîte de réception | — |
+| `get_message` | Lit le contenu complet d'un email | `message_id` |
+| `send_message` | Envoie un email | `subject`, `toRecipients`, `content`, `contentType` |
+| `list_events` | Liste les événements des 7 prochains jours | — |
+| `create_event` | Crée un événement (avec lien Teams automatique) | `subject`, `startDateTime`, `endDateTime`, `location`, `content`, `attendees` |
 
-1.  Go to [Azure Portal](https://portal.azure.com/) > **App permissions**.
-2.  Create a new registration (e.g., "Outlook MCP").
-3.  In **Authentication**, enable "Allow public client flows" (Device Code Flow).
-4.  In **API Permissions**, add the following **Delegated** permissions for **Microsoft Graph**:
-    - `User.Read`
-    - `Mail.Read`
-    - `Mail.Send`
-    - `Calendars.Read`
-    - `Calendars.ReadWrite`
-    - (Optional) `Grant admin consent` if using an organization account.
+---
 
-### 2. Installation
+## 🧰 Prérequis
+
+- [Node.js 18+](https://nodejs.org)
+- Un compte Microsoft (personnel ou professionnel)
+
+---
+
+## 🚀 Installation étape par étape
+
+### Étape 1 — Cloner le projet
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/FRESHSK/mcp_outlook_01.git
 cd mcp_outlook_01
 npm install
 ```
 
-### 3. Configuration
+---
 
-Create a `.env` file in the root directory:
+### Étape 2 — Créer une App Azure AD (une seule fois)
+
+1. Aller sur [Azure Portal - App Registrations](https://portal.azure.com/#view/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/~/RegisteredApps)
+2. Cliquer **"New registration"**
+3. Remplir le formulaire :
+   - **Name** : `MCP Outlook`
+   - **Supported account types** : choisir la 3ème option *(Multitenant + personal Microsoft accounts)*
+   - **Redirect URI** : `Public client/native` → `http://localhost`
+   - Cliquer **Register**
+4. Activer les flux publics :
+   - Menu gauche → **Authentication**
+   - Scroll bas → **Advanced settings**
+   - **Allow public client flows** → **Yes**
+   - Cliquer **Save**
+5. Copier l'**Application (client) ID** depuis **Overview**
+
+---
+
+### Étape 3 — Ajouter les permissions Microsoft Graph API
+
+1. Dans le [Azure Portal](https://portal.azure.com), aller sur ton App Registration
+2. Menu gauche → **API permissions**
+3. Cliquer **"Add a permission"**
+4. Choisir **Microsoft Graph**
+5. Choisir **Delegated permissions**
+6. Rechercher et cocher les permissions suivantes :
+
+| Permission | Type | Description |
+|-----------|------|-------------|
+| `User.Read` | Delegated | Lire le profil de l'utilisateur connecté |
+| `Mail.Read` | Delegated | Lire les emails |
+| `Mail.Read.Shared` | Delegated | Lire les emails partagés |
+| `Mail.ReadBasic` | Delegated | Lire les infos de base des emails |
+| `Mail.ReadWrite` | Delegated | Lire et modifier les emails |
+| `Mail.ReadWrite.Shared` | Delegated | Lire et modifier les emails partagés |
+| `Mail.Send` | Delegated | Envoyer des emails |
+| `Mail.Send.Shared` | Delegated | Envoyer des emails au nom d'autres |
+| `Calendars.Read` | Delegated | Lire les calendriers |
+| `Calendars.Read.Shared` | Delegated | Lire les calendriers partagés |
+| `Calendars.ReadBasic` | Delegated | Lire les infos de base des calendriers |
+| `Calendars.ReadWrite` | Delegated | Lire et modifier les calendriers |
+| `Calendars.ReadWrite.Shared` | Delegated | Lire et modifier les calendriers partagés |
+
+7. Cliquer **"Add permissions"**
+8. Cliquer **"Grant admin consent for ..."** puis confirmer
+
+**Résultat attendu dans Azure Portal :**
+
+```
+✅ User.Read                    (Delegated) - Granted
+✅ Mail.Read                    (Delegated) - Granted
+✅ Mail.Read.Shared             (Delegated) - Granted
+✅ Mail.ReadBasic               (Delegated) - Granted
+✅ Mail.ReadWrite               (Delegated) - Granted
+✅ Mail.ReadWrite.Shared        (Delegated) - Granted
+✅ Mail.Send                    (Delegated) - Granted
+✅ Mail.Send.Shared             (Delegated) - Granted
+✅ Calendars.Read               (Delegated) - Granted
+✅ Calendars.Read.Shared        (Delegated) - Granted
+✅ Calendars.ReadBasic          (Delegated) - Granted
+✅ Calendars.ReadWrite          (Delegated) - Granted
+✅ Calendars.ReadWrite.Shared   (Delegated) - Granted
+```
+
+---
+
+### Étape 4 — Configurer les variables d'environnement
+
+```bash
+cp .env.example .env
+```
+
+Éditer `.env` :
 
 ```env
-MICROSOFT_CLIENT_ID=your_client_id_from_azure
+MICROSOFT_CLIENT_ID=ton-client-id-azure
 MICROSOFT_TENANT_ID=common
 ```
-*(Note: Use `common` for personal accounts or your Tenant ID for organization accounts).*
 
-### 4. First Run (Authentication)
+> ⚠️ Ne jamais committer le fichier `.env` — il est dans `.gitignore`
 
-Run the server manually once to effectuate the login:
+> ℹ️ Utilise `common` pour un compte personnel, ou ton Tenant ID pour un compte organisation.
+
+---
+
+### Étape 5 — Première authentification Microsoft
 
 ```bash
 node server.js
 ```
 
-Follow the instructions to open `microsoft.com/devicelogin` and enter the code provided.
-Once successfull, a `token_cache.json` file will be created. You can verify it works when you see "Outlook MCP Server running on stdio".
+Tu verras dans le terminal :
+```
+To sign in, use a web browser to open the page
+https://microsoft.com/devicelogin and enter the code XXXXXXXX
+```
 
-## Usage with Claude Desktop
+1. Ouvrir [https://microsoft.com/devicelogin](https://microsoft.com/devicelogin)
+2. Entrer le code affiché dans le terminal
+3. Se connecter avec ton compte Microsoft
+4. Un fichier `token_cache.json` sera créé automatiquement
 
-Add the following to your Claude Desktop configuration file (`%APPDATA%\Claude\claude_desktop_config.json` on Windows):
+> ✅ Cette étape n'est nécessaire qu'une seule fois. Le token se renouvelle automatiquement.
+
+---
+
+### Étape 6 — Configurer Claude Desktop
+
+Éditer le fichier `claude_desktop_config.json` de Claude Desktop :
+- **Windows** : `C:\Users\<user>\AppData\Roaming\Claude\claude_desktop_config.json`
+- **Mac** : `~/Library/Application Support/Claude/claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "outlook": {
       "command": "node",
-      "args": ["C:\\path\\to\\mcp_outlook_01\\server.js"]
+      "args": [
+        "C:\\chemin\\absolu\\vers\\mcp_outlook_01\\server.js"
+      ]
     }
   }
 }
 ```
 
-Restart Claude Desktop. You can now ask Claude:
-- "Check my latest emails"
-- "Read the email from GitHub"
-- "Send an email to my colleague"
-- "What do I have planned this week?"
-- "Schedule a meeting with [email] tomorrow at 10 AM" (will create a Teams meeting)
+---
 
-## Troubleshooting
+### Étape 7 — Redémarrer Claude Desktop
 
-- **`fetch is not a function`**: Ensure you are using `node-fetch@2` (`npm install node-fetch@2`). This project uses CommonJS.
-- **Authentication Errors / New Permissions**: If you change permissions in Azure (e.g. adding Calendar), **delete `token_cache.json`** and run `node server.js` manually to re-authenticate and accept the new scopes.
-- **Error sending email**: If you see JSON errors during sending, it might be the 202 Accepted response. Ensure your `server.js` handles status 202 (already patched in this repo).
+Fermer et relancer Claude Desktop. Tu peux maintenant demander à Claude :
+
+- *"Montre-moi mes derniers emails"*
+- *"Lis l'email de GitHub"*
+- *"Envoie un email à mon collègue"*
+- *"Qu'est-ce que j'ai de prévu cette semaine ?"*
+- *"Planifie une réunion avec [email] demain à 10h"* (crée automatiquement un lien Teams)
+
+---
+
+## 📁 Structure du projet
+
+```
+mcp_outlook_01/
+├── server.js              # Serveur MCP principal
+├── .env                   # Variables d'environnement (non commité)
+├── .env.example           # Template des variables d'environnement
+├── .gitignore             # Fichiers ignorés par Git
+├── token_cache.json       # Cache du token MSAL (non commité)
+└── package.json           # Dépendances Node.js
+```
+
+---
+
+## 📦 Dépendances principales
+
+| Package | Usage |
+|---------|-------|
+| `@modelcontextprotocol/sdk` | Serveur MCP |
+| `@azure/msal-node` | Authentification Microsoft |
+| `node-fetch` | Requêtes HTTP vers Graph API |
+| `dotenv` | Variables d'environnement |
+| `zod` | Validation des paramètres des outils |
+
+---
+
+## 🔒 Sécurité
+
+- Le fichier `.env` contenant les clés est dans `.gitignore`
+- Le `token_cache.json` contenant les tokens Microsoft est dans `.gitignore`
+- Ne jamais committer de clés API ou de tokens dans GitHub
+
+---
+
+## 🐛 Dépannage
+
+**Le MCP ne répond pas dans Claude Desktop ?**
+→ Vérifier les logs : `AppData\Roaming\Claude\logs\mcp-server-outlook.log`
+
+**Erreur d'authentification ou nouvelles permissions ?**
+→ Supprimer `token_cache.json` et relancer `node server.js` pour se réauthentifier
+
+**Erreur `fetch is not a function` ?**
+→ Vérifier que `node-fetch` est bien installé : `npm install node-fetch`
+
+**Erreur lors de l'envoi d'email ?**
+→ Le code gère les réponses 202 Accepted — vérifier que `server.js` est à jour
+
+---
+
+## 📝 Licence
+
+MIT
